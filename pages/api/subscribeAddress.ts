@@ -6,7 +6,7 @@ type Data = {
   error?: string;
 };
 
-export default function handler(
+export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Data>
 ) {
@@ -27,6 +27,6 @@ export default function handler(
     return;
   }
 
-  addSubscribedEthAddr(ethAddress, iftttApiKey);
+  await addSubscribedEthAddr(ethAddress, iftttApiKey);
   res.status(200).json({});
 }
