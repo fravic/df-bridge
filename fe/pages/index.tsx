@@ -1,6 +1,8 @@
 import React, { FormEvent, useEffect, useState, useRef } from "react";
 import type { NextPage } from "next";
 import Head from "next/head";
+import GithubCorner from "react-github-corner";
+
 import styles from "../styles/Home.module.scss";
 
 function useStringStateWithLocalStorage(
@@ -62,6 +64,11 @@ const Home: NextPage = () => {
       </Head>
 
       <main className={styles.main}>
+        <GithubCorner
+          href="https://github.com/fravic/df-helm"
+          bannerColor="white"
+          octoColor="#192a42"
+        />
         <header className={styles.header}>
           <h1 className={styles.title}>DF Helm</h1>
           <div className={styles.inputWithLabel}>
