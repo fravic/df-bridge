@@ -25,3 +25,17 @@ export type DfPlanet = {
   planetType: number;
   isHomePlanet: boolean;
 };
+
+export type DfArrival = {
+  id: BigNumber;
+  player: string;
+  fromPlanet: BigNumber;
+  toPlanet: BigNumber;
+  popArriving: BigNumber;
+  silverMoved: BigNumber;
+  departureTime: BigNumber;
+  arrivalTime: BigNumber;
+  arrivalType: number;
+  carriedArtifactId: BigNumber;
+  distance: BigNumber;
+};

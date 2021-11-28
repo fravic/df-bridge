@@ -6,6 +6,9 @@
   },
   "dependencies": {
     "@darkforest_eth/contracts": "^6.6.6",
+    "@darkforest_eth/types": "^6.6.6",
+    "@darkforest_eth/ui": "^6.6.6",
+    "dayjs": "^1.10.7",
     "ethers": "^5.5.1",
     "isomorphic-fetch": "^3.0.0",
     "lodash": "^4.17.21",

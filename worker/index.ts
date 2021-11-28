@@ -14,8 +14,8 @@ import {
   LAST_BLOCK_PROCESSED_KEY,
   SUBSCRIBED_ETH_ADDRS_KEY,
 } from "../common/constants";
-import { DfArrivalEvent, DfPlanet } from "./types";
-import { notify } from "./notify";
+import { DfArrival, DfArrivalEvent, DfPlanet } from "./types";
+import { notifyOfArrival } from "./notify";
 
 const START_BLOCK = process.env.START_BLOCK || DF_START_BLOCK;
 const MAIN_LOOP_SLEEP_MS = 10000;
@@ -59,11 +59,15 @@ async function getPlanetsForArrivalEvents(
   await redisClient.connect();
   let timeoutId;
 
+  function queueNextLoop(lastBlockProcessed: string) {
+    redisClient.set(LAST_BLOCK_PROCESSED_KEY, lastBlockProcessed);
+    timeoutId = setTimeout(mainLoop, MAIN_LOOP_SLEEP_MS);
+  }
+
   async function mainLoop() {
     console.log("----- Starting main loop execution");
 
-    //const lastBlockProcessed = await redisClient.get(LAST_BLOCK_PROCESSED_KEY);
-    const lastBlockProcessed = null;
+    const lastBlockProcessed = await redisClient.get(LAST_BLOCK_PROCESSED_KEY);
     console.log("Last block processed:", lastBlockProcessed);
     const currentBlock = await provider.getBlockNumber();
     console.log("Current block:", currentBlock);
@@ -87,24 +91,53 @@ async function getPlanetsForArrivalEvents(
       endBlockToProcess
     )) as any;
     console.log("Event query result:", events);
+
+    if (!events.length) {
+      return queueNextLoop(String(endBlockToProcess));
+    }
+
     const planetsById = await getPlanetsForArrivalEvents(events);
 
+    // Filter planet ids to only those that subscribers are interested in
+    let filteredArrivalIds = [];
     const subscribedEthAddrsToIftttApiKeys = JSON.parse(
       (await redisClient.get(SUBSCRIBED_ETH_ADDRS_KEY)) || "{}"
     );
     for (const arrivalEvent of events) {
-      const planet = planetsById[arrivalEvent.args.to.toString()];
+      const planetId = arrivalEvent.args.to.toString();
+      const planet = planetsById[planetId];
       if (planet) {
         const iftttApiKeys =
           subscribedEthAddrsToIftttApiKeys[planet.owner] || [];
-        for (const iftttApiKey of iftttApiKeys) {
-          await notify(iftttApiKey, arrivalEvent, planet);
+        if (iftttApiKeys.length) {
+          filteredArrivalIds.push(arrivalEvent.args.arrivalId.toString());
         }
       }
     }
 
-    redisClient.set(LAST_BLOCK_PROCESSED_KEY, String(endBlockToProcess));
-    timeoutId = setTimeout(mainLoop, MAIN_LOOP_SLEEP_MS);
+    if (!filteredArrivalIds) {
+      return queueNextLoop(String(endBlockToProcess));
+    }
+
+    // Fetch arrivals and notify subscribers
+    const arrivals: Array<DfArrival> = [];
+    for (const arrivalId of filteredArrivalIds) {
+      console.log("Fetching arrival with id:", arrivalId);
+      arrivals.push(await dfContract.getPlanetArrival(arrivalId));
+    }
+    console.log("Arrivals query results:", arrivals);
+    for (const arrival of arrivals) {
+      const planet = planetsById[arrival.toPlanet.toString()];
+      if (planet) {
+        const iftttApiKeys =
+          subscribedEthAddrsToIftttApiKeys[planet.owner] || [];
+        for (const iftttApiKey of iftttApiKeys) {
+          await notifyOfArrival(iftttApiKey, arrival, planet);
+        }
+      }
+    }
+
+    return queueNextLoop(String(endBlockToProcess));
   }
 
   mainLoop();

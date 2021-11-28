@@ -1,19 +1,32 @@
 import fetch from "isomorphic-fetch";
-import { DfArrivalEvent, DfPlanet } from "./types";
+import dayjs from "dayjs";
+
+import { DfArrival, DfPlanet } from "./types";
 
 const IFTTT_URL = `https://maker.ifttt.com/trigger/{address}/with/key/{apiKey}?value1={body}`;
-const BODY_TEMPLATE = "Hostile {energy} arriving at {planetName} in {time}";
+const BODY_TEMPLATE = "Hostile {energy} energy arriving at {planetName} {time}";
+const MILLISECONDS_PER_SECOND = 1000;
 
-export async function notify(
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
+
+export async function notifyOfArrival(
   iftttApiKey: string,
-  arrivalEvent: DfArrivalEvent,
+  arrival: DfArrival,
   planet: DfPlanet
 ) {
-  // TODO: Fill in template
-  const notifBody = BODY_TEMPLATE;
+  const arrivalTime = dayjs(
+    arrival.arrivalTime.toNumber() * MILLISECONDS_PER_SECOND
+  );
+  const notifBody = BODY_TEMPLATE.replace(
+    "{energy}",
+    arrival.popArriving.toString()
+  )
+    .replace("{planetName}", `Level ${planet.planetLevel} Planet`)
+    .replace("{time}", arrivalTime.fromNow());
   const iftttUrl = IFTTT_URL.replace("{address}", planet.owner)
     .replace("{apiKey}", iftttApiKey)
     .replace("{body}", notifBody);
   console.log("Sending push to", iftttUrl);
-  const res = await fetch(iftttUrl);
+  await fetch(iftttUrl);
 }
