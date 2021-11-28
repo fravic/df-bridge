@@ -1,7 +1,8 @@
 {
   "name": "df-bridge-worker",
   "scripts": {
-    "start": "ts-node index.ts",
+    "build": "tsc --project tsconfig.json",
+    "start": "node build/worker/index.js",
     "dev": "nodemon --exec ts-node index.ts"
   },
   "dependencies": {
