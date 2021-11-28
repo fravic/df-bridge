@@ -95,8 +95,9 @@ async function getPlanetsForArrivalEvents(
     for (const arrivalEvent of events) {
       const planet = planetsById[arrivalEvent.args.to.toString()];
       if (planet) {
-        const iftttApiKey = subscribedEthAddrsToIftttApiKeys[planet.owner];
-        if (iftttApiKey) {
+        const iftttApiKeys =
+          subscribedEthAddrsToIftttApiKeys[planet.owner] || [];
+        for (const iftttApiKey of iftttApiKeys) {
           await notify(iftttApiKey, arrivalEvent, planet);
         }
       }

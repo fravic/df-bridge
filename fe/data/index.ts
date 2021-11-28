@@ -17,9 +17,10 @@ export async function addSubscribedEthAddr(
   const currentAddrs = JSON.parse(
     (await client.get(SUBSCRIBED_ETH_ADDRS_KEY)) || "{}"
   );
+  const ethAddrApiKeys = (currentAddrs[ethAddr] || []).concat([iftttApiKey]);
   const updatedAddrs = JSON.stringify({
     ...currentAddrs,
-    [ethAddr]: iftttApiKey,
+    [ethAddr]: ethAddrApiKeys,
   });
   await client.set(SUBSCRIBED_ETH_ADDRS_KEY, updatedAddrs);
 }
