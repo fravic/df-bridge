@@ -1,6 +1,6 @@
 // Module to notify subscribers of hostile arrivals heading to their planets
 
-import { gql, ApolloClient } from "@apollo/client/core";
+import { ApolloClient } from "@apollo/client/core";
 import fetch from "isomorphic-fetch";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -15,11 +15,19 @@ import { ARRIVALS_QUERY } from "./queries";
 const IFTTT_URL = `https://maker.ifttt.com/trigger/df_helm/with/key/{apiKey}?value1={body}`;
 const BODY_TEMPLATE = "Hostile {energy} energy arriving at {planetName} {time}";
 const MILLISECONDS_PER_SECOND = 1000;
+const ARRIVAL_TIME_DELTA_CUTOFF_MINS = 2;
 
 dayjs.extend(relativeTime);
 
 async function notifyOfArrival(iftttApiKey: string, arrival: any) {
   const arrivalTime = dayjs(arrival.arrivalTime * MILLISECONDS_PER_SECOND);
+
+  // Don't notify of arrival times that happened too far in the past
+  if (dayjs().diff(arrivalTime, "minute") > ARRIVAL_TIME_DELTA_CUTOFF_MINS) {
+    console.log("--- Discarding old arrival with time:", arrivalTime.fromNow());
+    return;
+  }
+
   const notifBody = BODY_TEMPLATE.replace(
     "{energy}",
     arrival.milliEnergyArriving
@@ -30,7 +38,7 @@ async function notifyOfArrival(iftttApiKey: string, arrival: any) {
     "{body}",
     notifBody
   );
-  console.log("Sending push to", iftttUrl);
+  console.log("--- Sending push to", iftttUrl);
   await fetch(iftttUrl);
 }
 
@@ -82,6 +90,6 @@ export async function notifyOfArrivals(
       notifyPromises.push(notifyOfArrival(iftttApiKey, arrival));
     }
   }
-  console.log("--- Sending notifications count:", notifyPromises.length);
+  console.log("--- Notification promise count:", notifyPromises.length);
   await Promise.all(notifyPromises);
 }
