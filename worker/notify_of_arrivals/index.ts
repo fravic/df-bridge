@@ -16,6 +16,7 @@ const IFTTT_URL = `https://maker.ifttt.com/trigger/df_helm/with/key/{apiKey}?val
 const BODY_TEMPLATE = "Hostile {energy} energy arriving at {planetName} {time}";
 const MILLISECONDS_PER_SECOND = 1000;
 const ARRIVAL_TIME_DELTA_CUTOFF_MINS = 2;
+const MAX_ARRIVALS_TO_QUERY = 100;
 
 dayjs.extend(relativeTime);
 
@@ -54,7 +55,7 @@ export async function notifyOfArrivals(
   const { data, error } = await client.query({
     query: ARRIVALS_QUERY,
     variables: {
-      first: 10,
+      first: MAX_ARRIVALS_TO_QUERY,
       departureTimeGt,
     },
   });
