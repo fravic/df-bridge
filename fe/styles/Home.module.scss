@@ -1,5 +1,9 @@
 .container {
   padding: 0 2rem;
+
+  @media (max-width: 600px) {
+    padding: 0 1rem;
+  }
 }
 
 .main {
@@ -16,6 +20,7 @@
 
 .header {
   margin-bottom: 3rem;
+  max-width: 100%;
 }
 
 .footer {
@@ -51,15 +56,28 @@
   align-items: center;
   border: 1px solid white;
 
+  label {
+    padding: 0.5rem 0.75rem;
+  }
+
   input {
     border: none;
     border-left: 1px solid white;
     width: 100%;
   }
+
+  @media (max-width: 600px) {
+    flex-wrap: wrap;
+
+    input {
+      border-left: none;
+      border-top: 1px solid white;
+      flex-basis: 100%;
+    }
+  }
 }
 
 .inputLabel {
-  margin: 0 1rem;
   flex-shrink: 0;
 }
 
