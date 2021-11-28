@@ -17,6 +17,8 @@ import {
 import { DfArrival, DfArrivalEvent, DfPlanet } from "./types";
 import { notifyOfArrival } from "./notify";
 
+type RedisClient = ReturnType<typeof redis.createClient>;
+
 const START_BLOCK = process.env.START_BLOCK || DF_START_BLOCK;
 const MAIN_LOOP_SLEEP_MS = 10000;
 const MAX_BLOCKS_TO_PROCESS_PER_LOOP = 100;
@@ -53,8 +55,72 @@ async function getPlanetsForArrivalEvents(
   return zipObject(planetIds, bulkPlanets);
 }
 
+async function getArrivals(
+  arrivalIds: Array<string>
+): Promise<Array<DfArrival>> {
+  const arrivals = [];
+  for (const arrivalId of arrivalIds) {
+    console.log("Fetching arrival with id:", arrivalId);
+    arrivals.push(await dfContract.getPlanetArrival(arrivalId));
+  }
+  console.log("Arrivals query results:", arrivals);
+  return arrivals;
+}
+
+async function notifySubscribersOfArrivals(
+  redisClient: RedisClient,
+  startBlock: number,
+  endBlock: number
+) {
+  console.log("Querying arrival events from block", startBlock, "to", endBlock);
+  const events: Array<DfArrivalEvent> = (await dfContract.queryFilter(
+    dfContract.filters.ArrivalQueued(),
+    startBlock,
+    endBlock
+  )) as any;
+  console.log("Event query result:", events);
+
+  if (!events.length) {
+    return;
+  }
+
+  const planetsById = await getPlanetsForArrivalEvents(events);
+
+  // Filter planet ids to only those that subscribers are interested in
+  let filteredArrivalIds = [];
+  const subscribedEthAddrsToIftttApiKeys = JSON.parse(
+    (await redisClient.get(SUBSCRIBED_ETH_ADDRS_KEY)) || "{}"
+  );
+  for (const arrivalEvent of events) {
+    const planetId = arrivalEvent.args.to.toString();
+    const planet = planetsById[planetId];
+    if (planet) {
+      const iftttApiKeys = subscribedEthAddrsToIftttApiKeys[planet.owner] || [];
+      if (iftttApiKeys.length) {
+        filteredArrivalIds.push(arrivalEvent.args.arrivalId.toString());
+      }
+    }
+  }
+
+  if (!filteredArrivalIds) {
+    return;
+  }
+
+  // Fetch arrivals and notify subscribers
+  const arrivals = await getArrivals(filteredArrivalIds);
+  for (const arrival of arrivals) {
+    const planet = planetsById[arrival.toPlanet.toString()];
+    if (planet) {
+      const iftttApiKeys = subscribedEthAddrsToIftttApiKeys[planet.owner] || [];
+      for (const iftttApiKey of iftttApiKeys) {
+        await notifyOfArrival(iftttApiKey, arrival, planet);
+      }
+    }
+  }
+}
+
 (async function main() {
-  const redisClient = redis.createClient({ url: process.env.REDIS_URL });
+  const redisClient = redis.createClient<any>({ url: process.env.REDIS_URL });
   redisClient.on("error", (err: any) => console.log("Redis Client Error", err));
   await redisClient.connect();
   let timeoutId;
@@ -79,62 +145,18 @@ async function getPlanetsForArrivalEvents(
       startBlockToProcess + MAX_BLOCKS_TO_PROCESS_PER_LOOP,
       currentBlock
     );
-    console.log(
-      "Querying arrival events from block",
-      startBlockToProcess,
-      "to",
-      endBlockToProcess
-    );
-    const events: Array<DfArrivalEvent> = (await dfContract.queryFilter(
-      dfContract.filters.ArrivalQueued(),
-      startBlockToProcess,
-      endBlockToProcess
-    )) as any;
-    console.log("Event query result:", events);
 
-    if (!events.length) {
-      return queueNextLoop(String(endBlockToProcess));
-    }
-
-    const planetsById = await getPlanetsForArrivalEvents(events);
-
-    // Filter planet ids to only those that subscribers are interested in
-    let filteredArrivalIds = [];
-    const subscribedEthAddrsToIftttApiKeys = JSON.parse(
-      (await redisClient.get(SUBSCRIBED_ETH_ADDRS_KEY)) || "{}"
-    );
-    for (const arrivalEvent of events) {
-      const planetId = arrivalEvent.args.to.toString();
-      const planet = planetsById[planetId];
-      if (planet) {
-        const iftttApiKeys =
-          subscribedEthAddrsToIftttApiKeys[planet.owner] || [];
-        if (iftttApiKeys.length) {
-          filteredArrivalIds.push(arrivalEvent.args.arrivalId.toString());
-        }
-      }
-    }
-
-    if (!filteredArrivalIds) {
-      return queueNextLoop(String(endBlockToProcess));
-    }
-
-    // Fetch arrivals and notify subscribers
-    const arrivals: Array<DfArrival> = [];
-    for (const arrivalId of filteredArrivalIds) {
-      console.log("Fetching arrival with id:", arrivalId);
-      arrivals.push(await dfContract.getPlanetArrival(arrivalId));
-    }
-    console.log("Arrivals query results:", arrivals);
-    for (const arrival of arrivals) {
-      const planet = planetsById[arrival.toPlanet.toString()];
-      if (planet) {
-        const iftttApiKeys =
-          subscribedEthAddrsToIftttApiKeys[planet.owner] || [];
-        for (const iftttApiKey of iftttApiKeys) {
-          await notifyOfArrival(iftttApiKey, arrival, planet);
-        }
-      }
+    try {
+      await notifySubscribersOfArrivals(
+        redisClient,
+        startBlockToProcess,
+        endBlockToProcess
+      );
+    } catch (error) {
+      console.error(
+        `Error notifying subscribers of arrivals for blocks ${startBlockToProcess} to ${endBlockToProcess}:`,
+        error
+      );
     }
 
     return queueNextLoop(String(endBlockToProcess));
