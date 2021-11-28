@@ -5,4 +5,4 @@
 *.pem
 
 # redis
-dump.rdb
+**/dump.rdb
