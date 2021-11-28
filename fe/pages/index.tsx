@@ -163,7 +163,9 @@ const NotificationsSection = (props: NotificationsSectionPropsType) => {
         webhook key to receive push notifications when your planets are
         attacked.
         <br />
-        <a>How do I set this up?</a>
+        <a href={process.env.DOCS_URL} target="_blank" rel="noreferrer">
+          How do I set this up?
+        </a>
       </p>
 
       <form onSubmit={handleSubmitApiToken}>
