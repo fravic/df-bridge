@@ -1,7 +1,7 @@
 import * as redis from "redis";
 import { uniq } from "lodash";
 
-import { SUBSCRIBED_ETH_ADDRS_KEY } from "../../common/constants";
+import { ARRIVALS_SUBSCRIBED_ETH_ADDRS_KEY } from "../../common/constants";
 
 export async function createClient() {
   const client = redis.createClient({ url: process.env.REDIS_URL });
@@ -16,7 +16,7 @@ export async function addSubscribedEthAddr(
 ) {
   const client = await createClient();
   const currentAddrs = JSON.parse(
-    (await client.get(SUBSCRIBED_ETH_ADDRS_KEY)) || "{}"
+    (await client.get(ARRIVALS_SUBSCRIBED_ETH_ADDRS_KEY)) || "{}"
   );
   const ethAddrApiKeys = uniq(
     (currentAddrs[ethAddr] || []).concat([iftttApiKey])
@@ -25,5 +25,5 @@ export async function addSubscribedEthAddr(
     ...currentAddrs,
     [ethAddr]: ethAddrApiKeys,
   });
-  await client.set(SUBSCRIBED_ETH_ADDRS_KEY, updatedAddrs);
+  await client.set(ARRIVALS_SUBSCRIBED_ETH_ADDRS_KEY, updatedAddrs);
 }
