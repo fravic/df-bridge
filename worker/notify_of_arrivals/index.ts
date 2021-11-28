@@ -7,7 +7,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 
 import {
   ARRIVALS_SUBSCRIBED_ETH_ADDRS_KEY,
-  ARRIVALS_LAST_DEPARTURE_TIME_SEEN_KEY,
+  ARRIVALS_DEPARTURE_TIME_HIGH_WATERMARK_KEY,
 } from "../../common/constants";
 import { RedisClient } from "../types";
 import { ARRIVALS_QUERY } from "./queries";
@@ -40,7 +40,7 @@ export async function notifyOfArrivals(
 ) {
   console.log("-- Begin notify of arrivals");
   const departureTimeGtStr = await redisClient.get(
-    ARRIVALS_LAST_DEPARTURE_TIME_SEEN_KEY
+    ARRIVALS_DEPARTURE_TIME_HIGH_WATERMARK_KEY
   );
   const departureTimeGt = departureTimeGtStr ? Number(departureTimeGtStr) : 0;
   const { data, error } = await client.query({
@@ -63,7 +63,7 @@ export async function notifyOfArrivals(
   const lastDepartureTime = data.arrivals[0].departureTime;
   console.log("--- Updating latest departure time to:", lastDepartureTime);
   await redisClient.set(
-    ARRIVALS_LAST_DEPARTURE_TIME_SEEN_KEY,
+    ARRIVALS_DEPARTURE_TIME_HIGH_WATERMARK_KEY,
     String(lastDepartureTime)
   );
 

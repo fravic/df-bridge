@@ -137,6 +137,7 @@ const NotificationsSection = (props: NotificationsSectionPropsType) => {
   const [iftttApiKey, setIftttApiKey] =
     useStringStateWithLocalStorage("iftttApiKey");
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmitApiToken = async (e: FormEvent) => {
     e.preventDefault();
@@ -156,7 +157,10 @@ const NotificationsSection = (props: NotificationsSectionPropsType) => {
     if (result.success) {
       setIftttApiKey(null);
       setSuccess(true);
-    } else {
+      setError(null);
+    } else if (result.error) {
+      setError(result.error);
+      setSuccess(false);
     }
   };
 
@@ -197,6 +201,11 @@ const NotificationsSection = (props: NotificationsSectionPropsType) => {
             <>
               <span className="material-icons">checkmark</span> Successfully
               subscribed to notifications
+            </>
+          )}
+          {error && (
+            <>
+              <span className="material-icons">error</span> {error}
             </>
           )}
         </div>

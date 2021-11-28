@@ -8,6 +8,8 @@ type Data = {
   success: boolean;
 };
 
+const NULL_ETH_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Data>
@@ -21,7 +23,7 @@ export default async function handler(
 
   const ethAddress = req.body["ethAddress"];
   const isAddress = ethers.utils.isAddress(ethAddress);
-  if (!ethAddress || !isAddress) {
+  if (!ethAddress || !isAddress || ethAddress === NULL_ETH_ADDRESS) {
     res
       .status(400)
       .json({ error: "Invalid eth address provided", success: false });
