@@ -94,7 +94,8 @@ async function notifySubscribersOfArrivals(
   for (const arrivalEvent of events) {
     const planetId = arrivalEvent.args.to.toString();
     const planet = planetsById[planetId];
-    if (planet) {
+    // Filter out arrivals from the planet's owner
+    if (planet && arrivalEvent.args.player != planet.owner) {
       const iftttApiKeys = subscribedEthAddrsToIftttApiKeys[planet.owner] || [];
       if (iftttApiKeys.length) {
         filteredArrivalIds.push(arrivalEvent.args.arrivalId.toString());

@@ -1,4 +1,5 @@
 import * as redis from "redis";
+import { uniq } from "lodash";
 
 import { SUBSCRIBED_ETH_ADDRS_KEY } from "../../common/constants";
 
@@ -17,7 +18,9 @@ export async function addSubscribedEthAddr(
   const currentAddrs = JSON.parse(
     (await client.get(SUBSCRIBED_ETH_ADDRS_KEY)) || "{}"
   );
-  const ethAddrApiKeys = (currentAddrs[ethAddr] || []).concat([iftttApiKey]);
+  const ethAddrApiKeys = uniq(
+    (currentAddrs[ethAddr] || []).concat([iftttApiKey])
+  );
   const updatedAddrs = JSON.stringify({
     ...currentAddrs,
     [ethAddr]: ethAddrApiKeys,
