@@ -1,9 +1,11 @@
+import * as ethers from "ethers";
 import type { NextApiRequest, NextApiResponse } from "next";
 
 import { addSubscribedEthAddr } from "../../data";
 
 type Data = {
   error?: string;
+  success: boolean;
 };
 
 export default async function handler(
@@ -11,22 +13,29 @@ export default async function handler(
   res: NextApiResponse<Data>
 ) {
   if (req.method !== "POST") {
-    res.status(400).json({ error: "Only POST requests are allowed" });
+    res
+      .status(400)
+      .json({ error: "Only POST requests are allowed", success: false });
     return;
   }
 
   const ethAddress = req.body["ethAddress"];
-  if (!ethAddress) {
-    res.status(400).json({ error: "Invalid eth address provided" });
+  const isAddress = ethers.utils.isAddress(ethAddress);
+  if (!ethAddress || !isAddress) {
+    res
+      .status(400)
+      .json({ error: "Invalid eth address provided", success: false });
     return;
   }
 
   const iftttApiKey = req.body["iftttApiKey"];
   if (!iftttApiKey) {
-    res.status(400).json({ error: "Invalid IFTTT API key provided" });
+    res
+      .status(400)
+      .json({ error: "Invalid IFTTT API key provided", success: false });
     return;
   }
 
   await addSubscribedEthAddr(ethAddress, iftttApiKey);
-  res.status(200).json({});
+  res.status(200).json({ success: true });
 }

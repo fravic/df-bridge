@@ -1,0 +1,102 @@
+.container {
+  padding: 0 2rem;
+}
+
+.main {
+  min-height: 100vh;
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 4rem 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.header {
+  margin-bottom: 3rem;
+}
+
+.footer {
+  display: flex;
+  flex: 1;
+  padding: 2rem 0;
+  border-top: 1px solid #eaeaea;
+  justify-content: center;
+  align-items: center;
+}
+
+.footer a {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-grow: 1;
+}
+
+.title {
+  margin: 0 0 1rem;
+  line-height: 1.15;
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.title,
+.description {
+  text-align: center;
+}
+
+.inputWithLabel {
+  display: flex;
+  align-items: center;
+  border: 1px solid white;
+
+  input {
+    border: none;
+    border-left: 1px solid white;
+    width: 100%;
+  }
+}
+
+.inputLabel {
+  margin: 0 1rem;
+  flex-shrink: 0;
+}
+
+input.addressInput {
+  width: 370px;
+  max-width: 100%;
+}
+
+.collapsibleSection {
+  border: 1px solid white;
+  width: 100%;
+}
+
+.collapsibleSectionHeader {
+  border-bottom: 1px solid white;
+  font-size: 1.35rem;
+  font-weight: bold;
+  padding: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.collapsibleSectionBody {
+  padding: 0.75rem;
+}
+
+.formSubmitContainer {
+  display: flex;
+  align-items: center;
+
+  font-weight: bold;
+
+  button {
+    margin-right: 1rem;
+  }
+
+  span {
+    width: 30px;
+  }
+}
