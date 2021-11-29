@@ -84,6 +84,7 @@ export async function notifyOfArrivals(
   );
   const notifyPromises = [];
   for (const arrival of arrivals) {
+    log.log("Processing arrival with id: " + arrival.id, 2);
     const planetOwnerId = arrival.toPlanet.owner.id;
     if (arrival.player.id === planetOwnerId) {
       continue;

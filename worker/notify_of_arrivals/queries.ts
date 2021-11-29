@@ -8,6 +8,7 @@ export const ARRIVALS_QUERY = gql`
       first: $first
       where: { departureTime_gt: $departureTimeGt }
     ) {
+      id
       player {
         id
       }
