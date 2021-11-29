@@ -138,10 +138,12 @@ const NotificationsSection = (props: NotificationsSectionPropsType) => {
     useStringStateWithLocalStorage("iftttApiKey");
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmitApiToken = async (e: FormEvent) => {
     e.preventDefault();
 
+    setLoading(true);
     const res = await fetch("/api/subscribeAddress", {
       body: JSON.stringify({
         ethAddress: props.ethAddress,
@@ -152,6 +154,7 @@ const NotificationsSection = (props: NotificationsSectionPropsType) => {
       },
       method: "POST",
     });
+    setLoading(false);
 
     const result = await res.json();
     if (result.success) {
@@ -197,17 +200,18 @@ const NotificationsSection = (props: NotificationsSectionPropsType) => {
             Submit
           </button>
 
-          {success && (
+          {success && !loading && (
             <>
               <span className="material-icons">checkmark</span> Successfully
               subscribed to notifications
             </>
           )}
-          {error && (
+          {error && !loading && (
             <>
               <span className="material-icons">error</span> {error}
             </>
           )}
+          {loading && <div className="spinner" />}
         </div>
       </form>
     </CollapsibleSection>
