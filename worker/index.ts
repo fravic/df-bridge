@@ -5,7 +5,9 @@ import { HttpLink, ApolloClient, InMemoryCache } from "@apollo/client/core";
 import * as log from "../common/log";
 import { notifyOfArrivals } from "./notify_of_arrivals";
 
-const MAIN_LOOP_SLEEP_MS = 10000;
+const MAIN_LOOP_SLEEP_MS = process.env.MAIN_LOOP_SLEEP_MS
+  ? Number(process.env.MAIN_LOOP_SLEEP_MS)
+  : 20000;
 
 const GRAPH_URL_HTTP =
   process.env.GRAPH_URL_HTTP ||
