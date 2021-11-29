@@ -1,7 +1,7 @@
 {
   "name": "df-bridge",
   "scripts": {
-    "dev": "next dev",
+    "dev": "LOG_LEVEL=verbose next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
