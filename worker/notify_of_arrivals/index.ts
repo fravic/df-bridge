@@ -54,6 +54,7 @@ export async function notifyOfArrivals(
   );
   const departureTimeGt = departureTimeGtStr ? Number(departureTimeGtStr) : 0;
   const { data, error } = await client.query({
+    fetchPolicy: "network-only",
     query: ARRIVALS_QUERY,
     variables: {
       first: MAX_ARRIVALS_TO_QUERY,
