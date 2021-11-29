@@ -2,6 +2,7 @@ import * as redis from "redis";
 import fetch from "isomorphic-fetch";
 import { HttpLink, ApolloClient, InMemoryCache } from "@apollo/client/core";
 
+import * as log from "../common/log";
 import { notifyOfArrivals } from "./notify_of_arrivals";
 
 const MAIN_LOOP_SLEEP_MS = 10000;
@@ -27,14 +28,14 @@ const httpLink = new HttpLink({
   });
 
   async function mainLoop() {
-    console.log("- Begin main loop");
+    log.verbose("Begin main loop");
     try {
       await notifyOfArrivals(apolloClient, redisClient);
     } catch (error) {
-      console.error("- Error notifying of arrivals:", error);
+      log.error("Error notifying of arrivals: " + error);
     }
     timeoutId = setTimeout(mainLoop, MAIN_LOOP_SLEEP_MS);
-    console.log("- End main loop");
+    log.verbose("End main loop");
   }
 
   mainLoop();

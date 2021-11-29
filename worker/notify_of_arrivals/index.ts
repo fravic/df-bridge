@@ -11,6 +11,7 @@ import {
 } from "../../common/constants";
 import { RedisClient } from "../types";
 import { ARRIVALS_QUERY } from "./queries";
+import * as log from "../../common/log";
 
 const IFTTT_URL = `https://maker.ifttt.com/trigger/df_helm/with/key/{apiKey}?value1={body}`;
 const BODY_TEMPLATE = "Hostile {energy} energy arriving at {planetName} {time}";
@@ -25,7 +26,7 @@ async function notifyOfArrival(iftttApiKey: string, arrival: any) {
 
   // Don't notify of arrival times that happened too far in the past
   if (dayjs().diff(arrivalTime, "minute") > ARRIVAL_TIME_DELTA_CUTOFF_MINS) {
-    console.log("--- Discarding old arrival with time:", arrivalTime.fromNow());
+    log.log("Discarding old arrival with time: " + arrivalTime.fromNow(), 2);
     return;
   }
 
@@ -39,7 +40,7 @@ async function notifyOfArrival(iftttApiKey: string, arrival: any) {
     "{body}",
     notifBody
   );
-  console.log("--- Sending push to", iftttUrl);
+  log.log("Sending push to: " + iftttUrl, 2);
   await fetch(iftttUrl);
 }
 
@@ -47,7 +48,7 @@ export async function notifyOfArrivals(
   client: ApolloClient<any>,
   redisClient: RedisClient
 ) {
-  console.log("-- Begin notify of arrivals");
+  log.verbose("Begin notify of arrivals", 1);
   const departureTimeGtStr = await redisClient.get(
     ARRIVALS_DEPARTURE_TIME_HIGH_WATERMARK_KEY
   );
@@ -60,23 +61,23 @@ export async function notifyOfArrivals(
     },
   });
   if (error) {
-    console.error("--- Error querying arrivals:", error);
+    log.error("Error querying arrivals: " + error, 2);
     return;
   }
   const arrivals = data?.arrivals;
   if (!arrivals || !arrivals.length) {
-    console.log("--- No arrivals returned");
+    log.verbose("No arrivals returned", 2);
     return;
   }
 
   const lastDepartureTime = data.arrivals[0].departureTime;
-  console.log("--- Updating latest departure time to:", lastDepartureTime);
+  log.log("Updating latest departure time to: " + lastDepartureTime, 2);
   await redisClient.set(
     ARRIVALS_DEPARTURE_TIME_HIGH_WATERMARK_KEY,
     String(lastDepartureTime)
   );
 
-  console.log("--- Processing arrival count:", arrivals.length);
+  log.verbose("Processing arrival count: " + arrivals.length, 2);
   const iftttApiKeysByEthAddress = JSON.parse(
     (await redisClient.get(ARRIVALS_SUBSCRIBED_ETH_ADDRS_KEY)) || "{}"
   );
@@ -91,6 +92,6 @@ export async function notifyOfArrivals(
       notifyPromises.push(notifyOfArrival(iftttApiKey, arrival));
     }
   }
-  console.log("--- Notification promise count:", notifyPromises.length);
+  log.verbose("Notification promise count: " + notifyPromises.length, 2);
   await Promise.all(notifyPromises);
 }
