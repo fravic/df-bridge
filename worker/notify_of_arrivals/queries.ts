@@ -1,30 +1,38 @@
 import { gql } from "@apollo/client/core";
 
-export const ARRIVALS_QUERY = gql`
-  query ($first: Int!, $departureTimeGt: Int) {
-    arrivals(
-      orderBy: departureTime
-      orderDirection: desc
-      first: $first
-      where: { departureTime_gt: $departureTimeGt }
+export const PLANETS_QUERY = gql`
+  query ($owner: String!, $departureTimeGt: Int, $maxPlanets: Int!) {
+    planets(
+      where:{
+        owner:$owner
+      },
+      first:$maxPlanets
     ) {
       id
-      player {
+      owner {
         id
       }
-      toPlanet {
-        owner {
+      defense
+      milliEnergyLazy
+      milliEnergyGrowth
+      milliEnergyCap
+      planetLevel
+      voyagesTo(
+        where:{
+          departureTime_gt:$departureTimeGt,
+          player_not:$owner
+        },
+        orderBy:departureTime,
+        orderDirection:desc,
+      ) {
+        id
+        player {
           id
         }
-        defense
-        milliEnergyLazy
-        milliEnergyGrowth
-        milliEnergyCap
-        planetLevel
+        milliEnergyArriving
+        departureTime
+        arrivalTime
       }
-      milliEnergyArriving
-      arrivalTime
-      departureTime
     }
   }
 `;

@@ -10,14 +10,14 @@ import {
   ARRIVALS_DEPARTURE_TIME_HIGH_WATERMARK_KEY,
 } from "../../common/constants";
 import { RedisClient } from "../types";
-import { ARRIVALS_QUERY } from "./queries";
+import { PLANETS_QUERY } from "./queries";
 import * as log from "../../common/log";
 
 const IFTTT_URL = `https://maker.ifttt.com/trigger/df_helm/with/key/{apiKey}?value1={body}`;
 const BODY_TEMPLATE = "Hostile {energy} energy arriving at {planetName} {time}";
 const MILLISECONDS_PER_SECOND = 1000;
 const ARRIVAL_TIME_DELTA_CUTOFF_MINS = 2;
-const MAX_ARRIVALS_TO_QUERY = 100;
+const MAX_PLANETS_SUPPORTED = 1000;
 
 dayjs.extend(relativeTime);
 
@@ -53,47 +53,55 @@ export async function notifyOfArrivals(
     ARRIVALS_DEPARTURE_TIME_HIGH_WATERMARK_KEY
   );
   const departureTimeGt = departureTimeGtStr ? Number(departureTimeGtStr) : 0;
-  const { data, error } = await client.query({
-    fetchPolicy: "network-only",
-    query: ARRIVALS_QUERY,
-    variables: {
-      first: MAX_ARRIVALS_TO_QUERY,
-      departureTimeGt,
-    },
-  });
-  if (error) {
-    log.error("Error querying arrivals: " + error, 2);
-    return;
-  }
-  const arrivals = data?.arrivals;
-  if (!arrivals || !arrivals.length) {
-    log.verbose("No arrivals returned", 2);
-    return;
-  }
 
-  const lastDepartureTime = data.arrivals[0].departureTime;
-  log.log("Updating latest departure time to: " + lastDepartureTime, 2);
-  await redisClient.set(
-    ARRIVALS_DEPARTURE_TIME_HIGH_WATERMARK_KEY,
-    String(lastDepartureTime)
-  );
-
-  log.verbose("Processing arrival count: " + arrivals.length, 2);
   const iftttApiKeysByEthAddress = JSON.parse(
     (await redisClient.get(ARRIVALS_SUBSCRIBED_ETH_ADDRS_KEY)) || "{}"
   );
-  const notifyPromises = [];
-  for (const arrival of arrivals) {
-    log.log("Processing arrival with id: " + arrival.id, 2);
-    const planetOwnerId = arrival.toPlanet.owner.id;
-    if (arrival.player.id === planetOwnerId) {
+  const playerAddrs = Object.keys(iftttApiKeysByEthAddress);
+  let newDepartureTimeHighWatermark = departureTimeGt;
+
+  for (const playerAddr of playerAddrs) {
+    log.verbose(`Querying planets for player: ${playerAddr}`);
+    const { data, error } = await client.query({
+      fetchPolicy: "network-only",
+      query: PLANETS_QUERY,
+      variables: {
+        owner: playerAddr.toLowerCase(),
+        departureTimeGt,
+        maxPlanets: MAX_PLANETS_SUPPORTED,
+      },
+    });
+
+    if (error || !data) {
+      log.error("Error querying planets: " + error, 2);
       continue;
     }
-    const iftttApiKeys = iftttApiKeysByEthAddress[planetOwnerId] || [];
-    for (const iftttApiKey of iftttApiKeys) {
-      notifyPromises.push(notifyOfArrival(iftttApiKey, arrival));
+
+    const planets = data?.planets;
+    const notifyPromises = [];
+    const iftttApiKey = iftttApiKeysByEthAddress[playerAddr];
+
+    log.verbose("Processing planet count: " + planets.length, 2);
+    for (const planet of planets) {
+      const arrivals = planet.voyagesTo;
+
+      log.verbose("Processing arrival count: " + arrivals.length, 2);
+      for (const arrival of arrivals) {
+        newDepartureTimeHighWatermark = Math.max(newDepartureTimeHighWatermark, arrival.departureTime);
+        notifyPromises.push(notifyOfArrival(iftttApiKey, arrival));
+      }
     }
+
+    log.verbose("Awaiting notification promise count: " + notifyPromises.length, 2);
+    await Promise.all(notifyPromises);
   }
-  log.verbose("Notification promise count: " + notifyPromises.length, 2);
-  await Promise.all(notifyPromises);
+
+  if (newDepartureTimeHighWatermark !== departureTimeGt) {
+    // TODO: May want to move high watermark to be per-player, to avoid re-notifying in case of errors
+    log.log("Updating latest departure time to: " + newDepartureTimeHighWatermark, 2);
+    await redisClient.set(
+      ARRIVALS_DEPARTURE_TIME_HIGH_WATERMARK_KEY,
+      String(newDepartureTimeHighWatermark)
+    );
+  }
 }
