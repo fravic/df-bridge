@@ -6,3 +6,5 @@
 
 # redis
 **/dump.rdb
+
+node_modules

@@ -2,7 +2,7 @@ import * as redis from "redis";
 import fetch from "isomorphic-fetch";
 import { HttpLink, ApolloClient, InMemoryCache } from "@apollo/client/core";
 
-import * as log from "../common/log";
+import * as log from "df-helm-common/log";
 import { notifyOfArrivals } from "./notify_of_arrivals";
 import { exploreMap } from "./explore_map";
 

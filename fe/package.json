@@ -1,5 +1,6 @@
 {
   "name": "df-bridge",
+  "version": "0.0.1",
   "scripts": {
     "dev": "LOG_LEVEL=verbose next dev",
     "build": "next build",

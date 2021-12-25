@@ -1,0 +1,11 @@
+{
+  "name": "df-client",
+  "version": "0.0.1",
+  "description": "Modular copies of darkforest eth client code, for use by df-helm",
+  "dependencies": {
+    "@darkforest_eth/hashing": "^6.6.6",
+    "@darkforest_eth/types": "^6.6.6",
+    "ethers": "^5.5.2",
+    "lodash": "^4.17.21"
+  }
+}

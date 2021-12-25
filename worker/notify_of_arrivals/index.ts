@@ -8,10 +8,11 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import {
   ARRIVALS_SUBSCRIBED_ETH_ADDRS_KEY,
   ARRIVALS_DEPARTURE_TIME_HIGH_WATERMARK_KEY,
-} from "../../common/constants";
+} from "df-helm-common/constants";
+import * as log from "df-helm-common/log";
+
 import { RedisClient } from "../types";
 import { PLANETS_QUERY } from "./queries";
-import * as log from "../../common/log";
 
 const IFTTT_URL = `https://maker.ifttt.com/trigger/df_helm/with/key/{apiKey}?value1={body}`;
 const BODY_TEMPLATE = "Hostile {energy} energy arriving at {planetName} {time}";
@@ -87,18 +88,27 @@ export async function notifyOfArrivals(
 
       log.verbose("Processing arrival count: " + arrivals.length, 2);
       for (const arrival of arrivals) {
-        newDepartureTimeHighWatermark = Math.max(newDepartureTimeHighWatermark, arrival.departureTime);
+        newDepartureTimeHighWatermark = Math.max(
+          newDepartureTimeHighWatermark,
+          arrival.departureTime
+        );
         notifyPromises.push(notifyOfArrival(iftttApiKey, arrival));
       }
     }
 
-    log.verbose("Awaiting notification promise count: " + notifyPromises.length, 2);
+    log.verbose(
+      "Awaiting notification promise count: " + notifyPromises.length,
+      2
+    );
     await Promise.all(notifyPromises);
   }
 
   if (newDepartureTimeHighWatermark !== departureTimeGt) {
     // TODO: May want to move high watermark to be per-player, to avoid re-notifying in case of errors
-    log.log("Updating latest departure time to: " + newDepartureTimeHighWatermark, 2);
+    log.log(
+      "Updating latest departure time to: " + newDepartureTimeHighWatermark,
+      2
+    );
     await redisClient.set(
       ARRIVALS_DEPARTURE_TIME_HIGH_WATERMARK_KEY,
       String(newDepartureTimeHighWatermark)

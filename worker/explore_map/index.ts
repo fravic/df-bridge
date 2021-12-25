@@ -2,11 +2,18 @@
 import * as ethers from "ethers";
 import fetch from "isomorphic-fetch";
 
-import MinerManager, { MinerManagerEvent } from "../df_client/MinerManager";
-import { SpiralPattern } from "../df_client/MiningPatterns";
-import { ChunkId, ChunkStore } from "../df_client/ChunkStoreTypes";
-import { Chunk, HashConfig, Rectangle } from "../df_client/GlobalTypes";
-import { spaceTypePerlin, biomebasePerlin } from "../df_client/GameManager";
+import * as log from "df-helm-common/log";
+import {
+  getChunkKey,
+  getChunkOfSideLengthContainingPoint,
+  toExploredChunk,
+  toPersistedChunk,
+} from "df-client/ChunkUtils";
+import MinerManager, { MinerManagerEvent } from "df-client/MinerManager";
+import { SpiralPattern } from "df-client/MiningPatterns";
+import { ChunkId, ChunkStore } from "df-client/ChunkStoreTypes";
+import { Chunk, HashConfig, Rectangle } from "df-client/GlobalTypes";
+import { spaceTypePerlin, biomebasePerlin } from "df-client/GameManager";
 
 import {
   CORE_CONTRACT_ADDRESS as DF_CORE_CONTRACT_ADDRESS,
@@ -16,15 +23,8 @@ import dfCoreAbi from "@darkforest_eth/contracts/abis/DarkForestCore.json";
 import dfGettersAbi from "@darkforest_eth/contracts/abis/DarkForestGetters.json";
 import { locationIdFromDecStr } from "@darkforest_eth/serde";
 
-import * as log from "../../common/log";
-import {
-  getChunkKey,
-  getChunkOfSideLengthContainingPoint,
-  toExploredChunk,
-  toPersistedChunk,
-} from "../df_client/ChunkUtils";
 import { RedisClient } from "../types";
-import { ALL_CHUNKS_LIST_KEY } from "../../common/constants";
+import { ALL_CHUNKS_LIST_KEY } from "../../df-helm-common/constants";
 
 const POKT_NETWORK_RPC_URL =
   "https://poa-xdai.gateway.pokt.network/v1/lb/60b13899d3279c22da2a444d";

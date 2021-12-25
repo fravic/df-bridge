@@ -1,7 +1,7 @@
 import * as redis from "redis";
 import { uniq } from "lodash";
 
-import { ARRIVALS_SUBSCRIBED_ETH_ADDRS_KEY } from "../../common/constants";
+import { ARRIVALS_SUBSCRIBED_ETH_ADDRS_KEY } from "../../df-helm-common/constants";
 
 export async function createClient() {
   const client = redis.createClient({ url: process.env.REDIS_URL });

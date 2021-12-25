@@ -1,5 +1,6 @@
 {
   "name": "df-bridge-worker",
+  "version": "0.0.1",
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "start": "node build/worker/index.js",
@@ -12,6 +13,8 @@
     "@darkforest_eth/serde": "^6.6.6",
     "@darkforest_eth/types": "^6.6.6",
     "dayjs": "^1.10.7",
+    "df-client": "0.0.1",
+    "df-helm-common": "0.0.1",
     "ethers": "^5.5.2",
     "graphql": "^16.0.1",
     "isomorphic-fetch": "^3.0.0",

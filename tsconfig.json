@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "composite": true
+  },
+  "references": [
+    {
+      "path": "./df-client"
+    },
+    {
+      "path": "./df-helm-common"
+    },
+    {
+      "path": "./fe"
+    },
+    {
+      "path": "./worker"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "df-helm",
+  "version": "0.0.1",
+  "description": "Utilities for darkforest eth",
+  "main": "index.js",
+  "repository": "git@github.com:fravic/df-bridge.git",
+  "author": "fravic <fravicf@gmail.com>",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "df-client",
+    "df-helm-common",
+    "fe",
+    "worker"
+  ]
+}
