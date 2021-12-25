@@ -2,10 +2,10 @@
 import * as ethers from "ethers";
 import fetch from "isomorphic-fetch";
 
-import MinerManager from "../df_client/MinerManager";
+import MinerManager, { MinerManagerEvent } from "../df_client/MinerManager";
 import { SpiralPattern } from "../df_client/MiningPatterns";
-import { ChunkStore } from "../df_client/ChunkStoreTypes";
-import { HashConfig, Rectangle } from "../df_client/GlobalTypes";
+import { ChunkId, ChunkStore } from "../df_client/ChunkStoreTypes";
+import { Chunk, HashConfig, Rectangle } from "../df_client/GlobalTypes";
 import { spaceTypePerlin, biomebasePerlin } from "../df_client/GameManager";
 
 import {
@@ -17,6 +17,14 @@ import dfGettersAbi from "@darkforest_eth/contracts/abis/DarkForestGetters.json"
 import { locationIdFromDecStr } from "@darkforest_eth/serde";
 
 import * as log from "../../common/log";
+import {
+  getChunkKey,
+  getChunkOfSideLengthContainingPoint,
+  toExploredChunk,
+  toPersistedChunk,
+} from "../df_client/ChunkUtils";
+import { RedisClient } from "../types";
+import { ALL_CHUNKS_LIST_KEY } from "../../common/constants";
 
 const POKT_NETWORK_RPC_URL =
   "https://poa-xdai.gateway.pokt.network/v1/lb/60b13899d3279c22da2a444d";
@@ -37,11 +45,83 @@ const dfGettersContract = new ethers.Contract(
   provider
 );
 
+const MAX_CHUNK_SIZE = 2 ** 14;
 class RedisChunkStore implements ChunkStore {
-  hasMinedChunk = (chunkFootprint: Rectangle): boolean => {
-    // TODO
-    return false;
-  };
+  // Chunks are persisted to redis for durability
+  redisClient: RedisClient;
+
+  // Local sync cache that is read from during normal execution
+  chunkCache: Map<string, Chunk> = new Map();
+
+  constructor(redisClient: RedisClient) {
+    this.redisClient = redisClient;
+  }
+
+  public addNewChunk(chunk: Chunk) {
+    if (this.hasMinedChunk(chunk.chunkFootprint)) {
+      return;
+    }
+
+    // TODO: If there are any existing chunks contained within this chunk, we should also delete them
+    // See PersistentChunkStore.ts:addChunk
+
+    const chunkId = getChunkKey(chunk.chunkFootprint);
+    this.chunkCache.set(chunkId, chunk);
+
+    // Note: this operation is async, but not awaited
+    this.redisClient.lPush(
+      ALL_CHUNKS_LIST_KEY,
+      JSON.stringify(toPersistedChunk(chunk))
+    );
+  }
+
+  public async loadChunksFromRedis() {
+    const allPersistedChunksJson = await this.redisClient.lRange(
+      ALL_CHUNKS_LIST_KEY,
+      0,
+      -1
+    );
+    const allPersistedChunks = allPersistedChunksJson.map((jsonChunk) =>
+      JSON.parse(jsonChunk)
+    );
+    for (const persistedChunk of allPersistedChunks) {
+      const chunk = toExploredChunk(persistedChunk);
+      const chunkId = getChunkKey(chunk.chunkFootprint);
+      this.chunkCache.set(chunkId, chunk);
+    }
+    log.log("Loaded " + allPersistedChunks.length + " chunks from redis");
+  }
+
+  public async exportToJson(): Promise<string> {
+    // TODO: Export to JSON string for download
+    return JSON.stringify({});
+  }
+
+  public getChunkByFootprint(chunkLoc: Rectangle): Chunk | undefined {
+    let sideLength = chunkLoc.sideLength;
+
+    while (sideLength <= MAX_CHUNK_SIZE) {
+      const testChunkLoc = getChunkOfSideLengthContainingPoint(
+        chunkLoc.bottomLeft,
+        sideLength
+      );
+      const chunk = this.getChunkById(getChunkKey(testChunkLoc));
+      if (chunk) {
+        return chunk;
+      }
+      sideLength *= 2;
+    }
+
+    return undefined;
+  }
+
+  public hasMinedChunk(chunkLoc: Rectangle): boolean {
+    return !!this.getChunkByFootprint(chunkLoc);
+  }
+
+  private getChunkById(chunkId: ChunkId): Chunk | undefined {
+    return this.chunkCache.get(chunkId);
+  }
 }
 
 class RemoteWorker implements Worker {
@@ -132,7 +212,7 @@ class RemoteWorker implements Worker {
   }
 }
 
-export async function exploreMap() {
+export async function exploreMap(redisClient: RedisClient) {
   const currentWorldRadius = await dfContract.worldRadius();
   log.verbose("Current world radius: " + currentWorldRadius);
   const gameConstants = await dfContract.gameConstants();
@@ -149,10 +229,15 @@ export async function exploreMap() {
   };
   log.verbose("Created hash config: " + JSON.stringify(hashConfig));
 
-  const center = { x: -40, y: 19 }; // TODO: Get the center to start from as input
+  const center = {
+    x: Number(process.env.HOME_PLANET_X) || 0,
+    y: Number(process.env.HOME_PLANET_Y) || 0,
+  };
+  log.log("Starting exploration around: " + JSON.stringify(center));
   const chunkSize = 256;
   const pattern = new SpiralPattern(center, chunkSize);
-  const chunkStore = new RedisChunkStore();
+  const chunkStore = new RedisChunkStore(redisClient);
+  await chunkStore.loadChunksFromRedis();
   const miner = MinerManager.create(
     chunkStore,
     pattern,
@@ -165,6 +250,12 @@ export async function exploreMap() {
         process.env.REMOTE_EXPLORER_URL || DEFAULT_REMOTE_EXPLORER_URL,
         hashConfig
       )
+  );
+  miner.on(
+    MinerManagerEvent.DiscoveredNewChunk,
+    (chunk: Chunk, miningTimeMillis: number) => {
+      chunkStore.addNewChunk(chunk);
+    }
   );
   miner.startExplore();
 }

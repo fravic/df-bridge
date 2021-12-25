@@ -30,7 +30,7 @@ const httpLink = new HttpLink({
     cache: new InMemoryCache(),
   });
 
-  await exploreMap();
+  await exploreMap(redisClient);
 
   async function mainLoop() {
     log.verbose("Begin main loop");
