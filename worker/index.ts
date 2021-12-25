@@ -4,6 +4,7 @@ import { HttpLink, ApolloClient, InMemoryCache } from "@apollo/client/core";
 
 import * as log from "../common/log";
 import { notifyOfArrivals } from "./notify_of_arrivals";
+import { exploreMap } from "./explore_map";
 
 const MAIN_LOOP_SLEEP_MS = process.env.MAIN_LOOP_SLEEP_MS
   ? Number(process.env.MAIN_LOOP_SLEEP_MS)
@@ -28,6 +29,8 @@ const httpLink = new HttpLink({
     link: httpLink,
     cache: new InMemoryCache(),
   });
+
+  await exploreMap();
 
   async function mainLoop() {
     log.verbose("Begin main loop");

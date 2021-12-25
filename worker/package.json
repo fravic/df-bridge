@@ -8,8 +8,11 @@
   "dependencies": {
     "@apollo/client": "^3.5.5",
     "@darkforest_eth/contracts": "^6.6.6",
+    "@darkforest_eth/hashing": "^6.6.6",
+    "@darkforest_eth/serde": "^6.6.6",
+    "@darkforest_eth/types": "^6.6.6",
     "dayjs": "^1.10.7",
-    "ethers": "^5.5.1",
+    "ethers": "^5.5.2",
     "graphql": "^16.0.1",
     "isomorphic-fetch": "^3.0.0",
     "lodash": "^4.17.21",
