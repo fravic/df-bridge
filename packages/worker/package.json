@@ -1,5 +1,5 @@
 {
-  "name": "df-bridge-worker",
+  "name": "worker",
   "version": "0.0.1",
   "scripts": {
     "build": "tsc --project tsconfig.json",

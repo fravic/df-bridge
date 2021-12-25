@@ -8,9 +8,6 @@
   "license": "MIT",
   "private": true,
   "workspaces": [
-    "df-client",
-    "df-helm-common",
-    "fe",
-    "worker"
+    "./packages/*"
   ]
 }
