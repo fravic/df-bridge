@@ -4,8 +4,7 @@
   "description": "Utilities for darkforest eth",
   "main": "index.js",
   "repository": "git@github.com:fravic/df-bridge.git",
-  "author": "fravic <fravicf@gmail.com>",
-  "license": "MIT",
+  "author": "fravic",
   "private": true,
   "scripts": {
     "build": "tsc -b"
