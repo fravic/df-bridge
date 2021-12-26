@@ -1,6 +1,6 @@
 import { perlin, PerlinConfig } from "@darkforest_eth/hashing";
 import { EventEmitter } from "events";
-import _ from "lodash";
+import * as _ from "lodash";
 import { ChunkStore } from "./ChunkStoreTypes";
 import {
   Chunk,
@@ -368,4 +368,4 @@ class MinerManager extends EventEmitter {
   }
 }
 
-export default MinerManager;
+export { MinerManager };

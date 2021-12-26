@@ -8,8 +8,8 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import {
   ARRIVALS_SUBSCRIBED_ETH_ADDRS_KEY,
   ARRIVALS_DEPARTURE_TIME_HIGH_WATERMARK_KEY,
-} from "df-helm-common/constants";
-import * as log from "df-helm-common/log";
+  log,
+} from "df-helm-common";
 
 import { RedisClient } from "../types";
 import { PLANETS_QUERY } from "./queries";

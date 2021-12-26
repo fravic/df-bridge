@@ -4,16 +4,16 @@
   },
   "references": [
     {
-      "path": "./df-client"
+      "path": "./packages/df-client/"
     },
     {
-      "path": "./df-helm-common"
+      "path": "./packages/df-helm-common/"
     },
     {
-      "path": "./fe"
+      "path": "./packages/fe/"
     },
     {
-      "path": "./worker"
+      "path": "./packages/worker/"
     }
   ]
 }

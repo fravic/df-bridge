@@ -2,18 +2,23 @@
 import * as ethers from "ethers";
 import fetch from "isomorphic-fetch";
 
-import * as log from "df-helm-common/log";
+import { log } from "df-helm-common";
 import {
+  biomebasePerlin,
+  Chunk,
+  ChunkId,
+  ChunkStore,
   getChunkKey,
   getChunkOfSideLengthContainingPoint,
+  HashConfig,
+  MinerManager,
+  MinerManagerEvent,
+  Rectangle,
+  spaceTypePerlin,
+  SpiralPattern,
   toExploredChunk,
   toPersistedChunk,
-} from "df-client/ChunkUtils";
-import MinerManager, { MinerManagerEvent } from "df-client/MinerManager";
-import { SpiralPattern } from "df-client/MiningPatterns";
-import { ChunkId, ChunkStore } from "df-client/ChunkStoreTypes";
-import { Chunk, HashConfig, Rectangle } from "df-client/GlobalTypes";
-import { spaceTypePerlin, biomebasePerlin } from "df-client/GameManager";
+} from "df-client/dist";
 
 import {
   CORE_CONTRACT_ADDRESS as DF_CORE_CONTRACT_ADDRESS,
@@ -124,7 +129,7 @@ class RedisChunkStore implements ChunkStore {
   }
 }
 
-class RemoteWorker implements Worker {
+class RemoteWorker {
   url: string;
   hashConfig: HashConfig;
 

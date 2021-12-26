@@ -2,5 +2,14 @@
   "name": "df-helm-common",
   "version": "0.0.1",
   "description": "Common utilities for all df-helm packages",
-  "dependencies": {}
+  "main": "dist/index",
+  "types": "dist/index",
+  "private": true,
+  "scripts": {
+    "build": "tsc --project tsconfig.json"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^4.5.4"
+  }
 }

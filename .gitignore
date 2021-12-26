@@ -7,4 +7,6 @@
 # redis
 **/dump.rdb
 
+# dependencies
+dist
 node_modules
