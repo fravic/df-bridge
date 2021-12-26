@@ -2207,7 +2207,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"df-client@0.0.1, df-client@workspace:packages/df-client":
+"df-client@workspace:0.0.1, df-client@workspace:packages/df-client":
   version: 0.0.0-use.local
   resolution: "df-client@workspace:packages/df-client"
   dependencies:
@@ -2219,7 +2219,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"df-helm-common@0.0.1, df-helm-common@workspace:packages/df-helm-common":
+"df-helm-common@workspace:0.0.1, df-helm-common@workspace:packages/df-helm-common":
   version: 0.0.0-use.local
   resolution: "df-helm-common@workspace:packages/df-helm-common"
   dependencies:
@@ -2293,6 +2293,13 @@ __metadata:
   dependencies:
     is-obj: ^2.0.0
   checksum: d5775790093c234ef4bfd5fbe40884ff7e6c87573e5339432870616331189f7f5d86575c5b5af2dcf0f61172990f4f734d07844b1f23482fff09e3c4bead05ea
+  languageName: node
+  linkType: hard
+
+"dotenv@npm:^10.0.0":
+  version: 10.0.0
+  resolution: "dotenv@npm:10.0.0"
+  checksum: f412c5fe8c24fbe313d302d2500e247ba8a1946492db405a4de4d30dd0eb186a88a43f13c958c5a7de303938949c4231c56994f97d05c4bc1f22478d631b4005
   languageName: node
   linkType: hard
 
@@ -2856,8 +2863,8 @@ __metadata:
     "@types/lodash": ^4.14.177
     "@types/node": 16.11.10
     "@types/react": 17.0.37
-    df-client: 0.0.1
-    df-helm-common: 0.0.1
+    df-client: "workspace:0.0.1"
+    df-helm-common: "workspace:0.0.1"
     eslint: 7
     eslint-config-next: 12.0.4
     ethers: ^5.5.1
@@ -6248,8 +6255,9 @@ __metadata:
     "@types/lodash": ^4.14.177
     "@types/node": ^16.11.10
     dayjs: ^1.10.7
-    df-client: 0.0.1
-    df-helm-common: 0.0.1
+    df-client: "workspace:0.0.1"
+    df-helm-common: "workspace:0.0.1"
+    dotenv: ^10.0.0
     ethers: ^5.5.2
     graphql: ^16.0.1
     isomorphic-fetch: ^3.0.0

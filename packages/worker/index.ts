@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 import * as redis from "redis";
 import fetch from "isomorphic-fetch";
 import { HttpLink, ApolloClient, InMemoryCache } from "@apollo/client/core";
