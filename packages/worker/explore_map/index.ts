@@ -20,12 +20,8 @@ import {
   toPersistedChunk,
 } from "df-client/dist";
 
-import {
-  CORE_CONTRACT_ADDRESS as DF_CORE_CONTRACT_ADDRESS,
-  GETTERS_CONTRACT_ADDRESS as DF_GETTERS_CONTRACT_ADDRESS,
-} from "@darkforest_eth/contracts";
+import { CORE_CONTRACT_ADDRESS as DF_CORE_CONTRACT_ADDRESS } from "@darkforest_eth/contracts";
 import dfCoreAbi from "@darkforest_eth/contracts/abis/DarkForestCore.json";
-import dfGettersAbi from "@darkforest_eth/contracts/abis/DarkForestGetters.json";
 import { locationIdFromDecStr } from "@darkforest_eth/serde";
 
 import { RedisClient } from "../types";
@@ -40,16 +36,10 @@ const provider = new ethers.providers.JsonRpcProvider(
   process.env.JSON_RPC_URL || POKT_NETWORK_RPC_URL
 );
 const dfContract = new ethers.Contract(
-  DF_CORE_CONTRACT_ADDRESS,
+  process.env.DF_CORE_CONTRACT_ADDRESS || DF_CORE_CONTRACT_ADDRESS,
   dfCoreAbi,
   provider
 );
-const dfGettersContract = new ethers.Contract(
-  DF_GETTERS_CONTRACT_ADDRESS,
-  dfGettersAbi,
-  provider
-);
-
 const MAX_CHUNK_SIZE = 2 ** 14;
 class RedisChunkStore implements ChunkStore {
   // Chunks are persisted to redis for durability
