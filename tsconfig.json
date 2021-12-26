@@ -2,18 +2,13 @@
   "compilerOptions": {
     "composite": true
   },
+  "files": [],
   "references": [
     {
       "path": "./packages/df-client/"
     },
     {
       "path": "./packages/df-helm-common/"
-    },
-    {
-      "path": "./packages/fe/"
-    },
-    {
-      "path": "./packages/worker/"
     }
   ]
 }

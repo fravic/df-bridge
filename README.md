@@ -4,8 +4,8 @@
 
 ```
 # Build packages
-yarn workspace df-client build
-yarn workspace df-helm-common-build
+yarn install
+yarn build
 
 # Start fe
 yarn workspace fe dev

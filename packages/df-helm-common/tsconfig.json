@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "allowJs": true,
+    "composite": true,
     "declaration": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -16,6 +17,6 @@
     "strict": true,
     "target": "es5"
   },
-  "include": ["index.ts"],
-  "exclude": ["node_modules"]
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }
