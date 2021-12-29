@@ -7,6 +7,7 @@ import { HttpLink, ApolloClient, InMemoryCache } from "@apollo/client/core";
 import { log } from "df-helm-common";
 import { notifyOfArrivals } from "./notify_of_arrivals";
 import { exploreMap } from "./explore_map";
+import { greedyCapture } from "./greedy_capture";
 
 const MAIN_LOOP_SLEEP_MS = process.env.MAIN_LOOP_SLEEP_MS
   ? Number(process.env.MAIN_LOOP_SLEEP_MS)
@@ -40,6 +41,11 @@ const httpLink = new HttpLink({
       await notifyOfArrivals(apolloClient, redisClient);
     } catch (error) {
       log.error("Error notifying of arrivals: " + error);
+    }
+    try {
+      await greedyCapture(apolloClient, redisClient);
+    } catch (error) {
+      log.error("Error running greedy capture: " + error);
     }
     timeoutId = setTimeout(mainLoop, MAIN_LOOP_SLEEP_MS);
     log.verbose("End main loop");

@@ -133,7 +133,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@darkforest_eth/constants@npm:6.6.6":
+"@darkforest_eth/constants@npm:6.6.6, @darkforest_eth/constants@npm:^6.6.6":
   version: 6.6.6
   resolution: "@darkforest_eth/constants@npm:6.6.6"
   dependencies:
@@ -6247,6 +6247,7 @@ __metadata:
   resolution: "worker@workspace:packages/worker"
   dependencies:
     "@apollo/client": ^3.5.5
+    "@darkforest_eth/constants": ^6.6.6
     "@darkforest_eth/contracts": ^6.6.6
     "@darkforest_eth/hashing": ^6.6.6
     "@darkforest_eth/serde": ^6.6.6

@@ -132,20 +132,24 @@ class RemoteWorker {
     const msgJson = JSON.parse(msg);
     log.verbose("Sending message to remote worker", msgJson);
 
-    const resp = await fetch(this.url, {
-      method: "POST",
-      body: JSON.stringify({
-        chunkFootprint: msgJson.chunkFootprint,
-        planetRarity: msgJson.planetRarity,
-        planetHashKey: msgJson.planetHashKey,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    const exploredChunk = await resp.json();
-    log.verbose("Received explored chunk: " + JSON.stringify(exploredChunk));
+    let exploredChunk;
+    try {
+      const resp = await fetch(this.url, {
+        method: "POST",
+        body: JSON.stringify({
+          chunkFootprint: msgJson.chunkFootprint,
+          planetRarity: msgJson.planetRarity,
+          planetHashKey: msgJson.planetHashKey,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      exploredChunk = await resp.json();
+    } catch (error) {
+      log.error("Error messaging remote worker: " + error);
+      return;
+    }
 
     for (const planetLoc of exploredChunk.planetLocations) {
       const locationId = locationIdFromDecStr(planetLoc.hash);
