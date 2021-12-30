@@ -8,6 +8,10 @@ import { log } from "df-helm-common";
 import { notifyOfArrivals } from "./notify_of_arrivals";
 import { exploreMap } from "./explore_map";
 import { greedyCapture } from "./greedy_capture";
+import {
+  fetchContractConstants,
+  fetchCurrentWorldRadius,
+} from "./contractConstants";
 
 const MAIN_LOOP_SLEEP_MS = process.env.MAIN_LOOP_SLEEP_MS
   ? Number(process.env.MAIN_LOOP_SLEEP_MS)
@@ -33,7 +37,10 @@ const httpLink = new HttpLink({
     cache: new InMemoryCache(),
   });
 
-  await exploreMap(redisClient);
+  const contractConstants = await fetchContractConstants();
+  const currentWorldRadius = await fetchCurrentWorldRadius();
+
+  await exploreMap(redisClient, contractConstants, currentWorldRadius);
 
   async function mainLoop() {
     log.verbose("Begin main loop");
@@ -43,7 +50,7 @@ const httpLink = new HttpLink({
       log.error("Error notifying of arrivals: " + error);
     }
     try {
-      await greedyCapture(apolloClient, redisClient);
+      await greedyCapture(apolloClient, redisClient, contractConstants);
     } catch (error) {
       log.error("Error running greedy capture: " + error);
     }

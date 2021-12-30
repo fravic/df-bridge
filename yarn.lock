@@ -1469,7 +1469,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"big-integer@npm:^1.6.48":
+"big-integer@npm:^1.6.48, big-integer@npm:^1.6.51":
   version: 1.6.51
   resolution: "big-integer@npm:1.6.51"
   checksum: 3d444173d1b2e20747e2c175568bedeebd8315b0637ea95d75fd27830d3b8e8ba36c6af40374f36bdaea7b5de376dcada1b07587cb2a79a928fccdb6e6e3c518
@@ -2213,6 +2213,7 @@ __metadata:
   dependencies:
     "@darkforest_eth/hashing": ^6.6.6
     "@darkforest_eth/types": ^6.6.6
+    big-integer: ^1.6.51
     ethers: ^5.5.2
     lodash: ^4.17.21
     typescript: ^4.5.4

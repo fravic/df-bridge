@@ -1,5 +1,4 @@
 // Module to call into remote explorer and store result planet locations in redis
-import * as ethers from "ethers";
 import fetch from "isomorphic-fetch";
 
 import { log } from "df-helm-common";
@@ -8,6 +7,7 @@ import {
   Chunk,
   ChunkId,
   ChunkStore,
+  ContractConstants,
   getChunkKey,
   getChunkOfSideLengthContainingPoint,
   HashConfig,
@@ -20,26 +20,13 @@ import {
   toPersistedChunk,
 } from "df-client/dist";
 
-import { CORE_CONTRACT_ADDRESS as DF_CORE_CONTRACT_ADDRESS } from "@darkforest_eth/contracts";
-import dfCoreAbi from "@darkforest_eth/contracts/abis/DarkForestCore.json";
 import { locationIdFromDecStr } from "@darkforest_eth/serde";
 
 import { RedisClient } from "../types";
 import { ALL_CHUNKS_LIST_KEY } from "../../df-helm-common/constants";
 
-const POKT_NETWORK_RPC_URL =
-  "https://poa-xdai.gateway.pokt.network/v1/lb/60b13899d3279c22da2a444d";
-
 const DEFAULT_REMOTE_EXPLORER_URL = "http://localhost:8000/mine";
 
-const provider = new ethers.providers.JsonRpcProvider(
-  process.env.JSON_RPC_URL || POKT_NETWORK_RPC_URL
-);
-const dfContract = new ethers.Contract(
-  process.env.DF_CORE_CONTRACT_ADDRESS || DF_CORE_CONTRACT_ADDRESS,
-  dfCoreAbi,
-  provider
-);
 const MAX_CHUNK_SIZE = 2 ** 14;
 class RedisChunkStore implements ChunkStore {
   // Chunks are persisted to redis for durability
@@ -130,8 +117,6 @@ class RemoteWorker {
 
   async postMessage(msg: string) {
     const msgJson = JSON.parse(msg);
-    log.verbose("Sending message to remote worker", msgJson);
-
     let exploredChunk;
     try {
       const resp = await fetch(this.url, {
@@ -211,20 +196,18 @@ class RemoteWorker {
   }
 }
 
-export async function exploreMap(redisClient: RedisClient) {
-  const currentWorldRadius = await dfContract.worldRadius();
-  log.verbose("Current world radius: " + currentWorldRadius);
-  const gameConstants = await dfContract.gameConstants();
-  log.verbose("Loaded game constants");
-  const snarkConstants = await dfContract.snarkConstants();
-  log.verbose("Loaded snark constants");
+export async function exploreMap(
+  redisClient: RedisClient,
+  contractConstants: ContractConstants,
+  currentWorldRadius: number
+) {
   const hashConfig: HashConfig = {
-    planetHashKey: snarkConstants.PLANETHASH_KEY.toNumber(),
-    spaceTypeKey: snarkConstants.SPACETYPE_KEY.toNumber(),
-    biomebaseKey: snarkConstants.BIOMEBASE_KEY.toNumber(),
-    perlinLengthScale: snarkConstants.PERLIN_LENGTH_SCALE.toNumber(),
-    perlinMirrorX: snarkConstants.PERLIN_MIRROR_X,
-    perlinMirrorY: snarkConstants.PERLIN_MIRROR_Y,
+    planetHashKey: contractConstants.PLANETHASH_KEY,
+    spaceTypeKey: contractConstants.SPACETYPE_KEY,
+    biomebaseKey: contractConstants.BIOMEBASE_KEY,
+    perlinLengthScale: contractConstants.PERLIN_LENGTH_SCALE,
+    perlinMirrorX: contractConstants.PERLIN_MIRROR_X,
+    perlinMirrorY: contractConstants.PERLIN_MIRROR_Y,
   };
   log.verbose("Created hash config: " + JSON.stringify(hashConfig));
 
@@ -241,7 +224,7 @@ export async function exploreMap(redisClient: RedisClient) {
     chunkStore,
     pattern,
     currentWorldRadius,
-    gameConstants.PLANET_RARITY.toNumber(),
+    contractConstants.PLANET_RARITY,
     hashConfig,
     false, // useMockHash
     () =>

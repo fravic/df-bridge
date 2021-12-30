@@ -14,13 +14,14 @@ export const PLAYER_PLANETS_QUERY = gql`
       milliEnergyCap
       planetLevel
       planetType
+      range
     }
   }
 `;
 
 export const PLANETS_BY_ID_QUERY = gql`
   query planetsById($planetIds: [String!]!) {
-    planets(where: { id_in: $planetIds }) {
+    planets(where: { id_in: $planetIds }, first: $maxPlanets) {
       id
       owner {
         id
@@ -31,6 +32,7 @@ export const PLANETS_BY_ID_QUERY = gql`
       milliEnergyGrowth
       milliEnergyCap
       planetLevel
+      range
     }
   }
 `;
