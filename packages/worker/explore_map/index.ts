@@ -24,6 +24,7 @@ import { locationIdFromDecStr } from "@darkforest_eth/serde";
 
 import { RedisClient } from "../types";
 import { ALL_CHUNKS_LIST_KEY } from "../../df-helm-common/constants";
+import { ContractAPI } from "../contract";
 
 const DEFAULT_REMOTE_EXPLORER_URL = "http://localhost:8000/mine";
 
@@ -198,9 +199,10 @@ class RemoteWorker {
 
 export async function exploreMap(
   redisClient: RedisClient,
-  contractConstants: ContractConstants,
-  currentWorldRadius: number
+  contractApi: ContractAPI
 ) {
+  const contractConstants = await contractApi.fetchContractConstants();
+  const currentWorldRadius = await contractApi.fetchCurrentWorldRadius();
   const hashConfig: HashConfig = {
     planetHashKey: contractConstants.PLANETHASH_KEY,
     spaceTypeKey: contractConstants.SPACETYPE_KEY,

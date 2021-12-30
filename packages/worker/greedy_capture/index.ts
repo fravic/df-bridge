@@ -3,10 +3,12 @@
 import { ApolloClient } from "@apollo/client/core";
 import { EMPTY_ADDRESS } from "@darkforest_eth/constants";
 import {
+  ContractMethodName,
   Planet as DFPlanet,
   PlanetType,
   WorldLocation,
   WorldCoords,
+  UnconfirmedMove,
 } from "@darkforest_eth/types";
 import {
   ContractConstants,
@@ -19,9 +21,9 @@ import { ALL_CHUNKS_LIST_KEY, log } from "df-helm-common";
 
 import { RedisClient } from "../types";
 import { PLANETS_BY_ID_QUERY, PLAYER_PLANETS_QUERY } from "./queries";
+import { ContractAPI } from "../contract";
 
 const PLAYER_ADDRESS = process.env.PLAYER_ADDRESS;
-const PLAYER_SECRET_KEY = process.env.PLAYER_SECRET_KEY;
 
 const MAX_PLANETS_TO_QUERY = 1000;
 
@@ -56,7 +58,7 @@ type MoveToExecute = {
 export async function greedyCapture(
   apolloClient: ApolloClient<any>,
   redisClient: RedisClient,
-  contractConstants: ContractConstants
+  contractApi: ContractAPI
 ) {
   const locationsById = await getAllKnownLocations(redisClient);
   const playerPlanets = await queryPlayerPlanets(apolloClient, locationsById);
@@ -68,6 +70,7 @@ export async function greedyCapture(
     locationsById,
     moveablePlayerPlanets
   );
+  const contractConstants = await contractApi.fetchContractConstants();
   const planetsOfInterest = await queryPlanetsOfInterest(
     apolloClient,
     planetIdsOfInterest,
@@ -75,7 +78,7 @@ export async function greedyCapture(
     contractConstants
   );
   const movesToExecute = rankMoves(moveablePlayerPlanets, planetsOfInterest);
-  await executeMoves(movesToExecute);
+  await executeMoves(movesToExecute, contractApi);
 }
 
 async function getAllKnownLocations(redisClient: RedisClient) {
@@ -352,8 +355,12 @@ function rankMoves(
   return results;
 }
 
-async function executeMoves(movesToExecute: Array<MoveToExecute>) {
+async function executeMoves(
+  movesToExecute: Array<MoveToExecute>,
+  contractApi: ContractAPI
+) {
   for (const moveToExecute of movesToExecute) {
     log.log("Executing move: " + JSON.stringify(moveToExecute));
+    // TODO: Calculate SNARK and then make move via ContractAPI
   }
 }
