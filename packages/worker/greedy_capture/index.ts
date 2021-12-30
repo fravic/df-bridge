@@ -22,6 +22,7 @@ import { ALL_CHUNKS_LIST_KEY, log } from "df-helm-common";
 import { RedisClient } from "../types";
 import { PLANETS_BY_ID_QUERY, PLAYER_PLANETS_QUERY } from "./queries";
 import { ContractAPI } from "../contract";
+import { getMoveArgs } from "./snark";
 
 const PLAYER_ADDRESS = process.env.PLAYER_ADDRESS;
 
@@ -78,7 +79,7 @@ export async function greedyCapture(
     contractConstants
   );
   const movesToExecute = rankMoves(moveablePlayerPlanets, planetsOfInterest);
-  await executeMoves(movesToExecute, contractApi);
+  await executeMoves(movesToExecute, locationsById, contractApi);
 }
 
 async function getAllKnownLocations(redisClient: RedisClient) {
@@ -332,7 +333,11 @@ function rankMoves(
     targetPlanets.forEach((targetPlanet) => {
       const playerPlanetLocation = playerPlanets[playerPlanetId].location;
       const targetPlanetLocation = targetPlanet.location;
-      if (!playerPlanetLocation || !targetPlanetLocation) {
+      if (
+        !playerPlanetLocation ||
+        !targetPlanetLocation ||
+        targetPlanet.planetData.owner !== EMPTY_ADDRESS
+      ) {
         return;
       }
       const dist = distBetweenCoords(
@@ -342,7 +347,7 @@ function rankMoves(
       if (dist < bestMoveDist) {
         bestMove = {
           fromPlanetId: playerPlanetId,
-          toPlanetId: targetPlanets[0].planetId,
+          toPlanetId: targetPlanet.planetId,
           energy: currentEnergy * 0.5,
         };
         bestMoveDist = dist;
@@ -357,10 +362,35 @@ function rankMoves(
 
 async function executeMoves(
   movesToExecute: Array<MoveToExecute>,
+  locationsById: LocationsById,
   contractApi: ContractAPI
 ) {
+  const contractConstants = await contractApi.fetchContractConstants();
+  const currentWorldRadius = await contractApi.fetchCurrentWorldRadius();
+  const txs = [];
   for (const moveToExecute of movesToExecute) {
     log.log("Executing move: " + JSON.stringify(moveToExecute));
-    // TODO: Calculate SNARK and then make move via ContractAPI
+    const c1 = locationsById[moveToExecute.fromPlanetId].coords;
+    const c2 = locationsById[moveToExecute.toPlanetId].coords;
+    const xDiff = c2.x - c1.x;
+    const yDiff = c2.y - c1.y;
+    const distMax = Math.ceil(Math.sqrt(xDiff ** 2 + yDiff ** 2));
+    const moveArgs = await getMoveArgs(
+      c1.x,
+      c1.y,
+      c2.x,
+      c2.y,
+      currentWorldRadius,
+      distMax,
+      contractConstants
+    );
+    txs.push(await contractApi.move(moveArgs, moveToExecute.energy));
+    log.log(
+      "Successfully SNARKed and queued move: " + JSON.stringify(moveToExecute)
+    );
   }
+  // Wait for all txs to be submitted. TODO: Add error handling in case of failures.
+  log.verbose("Waiting on " + txs.length + " move submissions...");
+  await Promise.all(txs.map((tx) => tx.submitted));
+  log.verbose("All moves submitted");
 }

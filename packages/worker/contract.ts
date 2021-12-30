@@ -10,10 +10,15 @@ import {
   ContractCaller,
   createContract,
   EthConnection,
+  PendingTransaction,
+  TxExecutor,
 } from "@darkforest_eth/network";
 
-import { ContractConstants } from "df-client";
+import { ContractConstants, MoveArgs, ZKArgIdx } from "df-client";
 import { log } from "df-helm-common";
+import { MoveSnarkContractCallArgs } from "@darkforest_eth/snarks";
+import { ContractMethodName } from "@darkforest_eth/types";
+import { CONTRACT_PRECISION } from "@darkforest_eth/constants";
 
 const POKT_NETWORK_RPC_URL =
   "https://poa-xdai.gateway.pokt.network/v1/lb/60b13899d3279c22da2a444d";
@@ -27,6 +32,7 @@ export class ContractAPI {
   contractCaller: ContractCaller = new ContractCaller();
   coreContract: DarkForestCore | null = null;
   contractConstants: ContractConstants | null = null;
+  txExecutor: TxExecutor | null = null;
 
   public async init() {
     this.ethConnection = new EthConnection(
@@ -53,6 +59,10 @@ export class ContractAPI {
     );
     this.coreContract =
       this.ethConnection.getContract<DarkForestCore>(coreContractAddress);
+    this.txExecutor = new TxExecutor(
+      this.ethConnection,
+      () => "10" // Gas fee, hardcoded for now
+    );
   }
 
   public async makeCall<T>(
@@ -207,5 +217,39 @@ export class ContractAPI {
     );
     log.verbose("Current world radius: " + currentWorldRadius);
     return currentWorldRadius.toNumber();
+  }
+
+  public async move(
+    snarkArgs: MoveSnarkContractCallArgs,
+    energy: number
+  ): Promise<PendingTransaction> {
+    const args = [
+      snarkArgs[ZKArgIdx.PROOF_A],
+      snarkArgs[ZKArgIdx.PROOF_B],
+      snarkArgs[ZKArgIdx.PROOF_C],
+      [
+        ...snarkArgs[ZKArgIdx.DATA],
+        Math.floor(energy * CONTRACT_PRECISION).toString(),
+        "0",
+        "0",
+      ],
+    ] as MoveArgs;
+    const tx = this.txExecutor!.queueTransaction(
+      this.getRandomActionId(),
+      this.coreContract!,
+      ContractMethodName.MOVE,
+      args
+    );
+    return tx;
+  }
+
+  private getRandomActionId() {
+    // From @darkforest_eth/Utils.ts
+    const hex = "0123456789abcdef";
+    let ret = "";
+    for (let i = 0; i < 10; i += 1) {
+      ret += hex[Math.floor(hex.length * Math.random())];
+    }
+    return ret;
   }
 }
