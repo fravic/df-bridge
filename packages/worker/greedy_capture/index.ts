@@ -73,13 +73,18 @@ export async function greedyCapture(
 ) {
   const locationsById = await getAllKnownLocations(redisClient);
   const playerPlanets = await queryPlayerPlanets(apolloClient, locationsById);
-  const moveablePlayerPlanets = filterPlayerPlanetsToMoveable(playerPlanets);
+  const currentWorldRadius = await contractApi.fetchCurrentWorldRadius();
+  const moveablePlayerPlanets = filterPlayerPlanetsToMoveable(
+    playerPlanets,
+    currentWorldRadius
+  );
   log.verbose(
     "Player moveable planets: " + Object.keys(moveablePlayerPlanets).length
   );
   const planetIdsOfInterest = await fetchNearbyPlanetIdsToPlayerPlanets(
     locationsById,
-    moveablePlayerPlanets
+    moveablePlayerPlanets,
+    currentWorldRadius
   );
   const contractConstants = await contractApi.fetchContractConstants();
   const planetsOfInterest = await queryPlanetsOfInterest(
@@ -90,7 +95,12 @@ export async function greedyCapture(
     contractConstants
   );
   const movesToExecute = rankMoves(moveablePlayerPlanets, planetsOfInterest);
-  await executeMoves(movesToExecute, locationsById, contractApi);
+  await executeMoves(
+    movesToExecute,
+    locationsById,
+    contractApi,
+    currentWorldRadius
+  );
 }
 
 async function getAllKnownLocations(redisClient: RedisClient) {
@@ -171,13 +181,25 @@ function defaultPlanetToPlanetData(defaultPlanet: DFPlanet): PlanetData {
 }
 
 function filterPlayerPlanetsToMoveable(
-  playerPlanets: PlanetWithLocationsById
+  playerPlanets: PlanetWithLocationsById,
+  currentWorldRadius: number
 ): PlanetWithLocationsById {
   return pickBy(playerPlanets, (planetWithPosition, planetId) => {
     const currentEnergy = getEnergyAtTime(
       planetWithPosition.planetData,
       new Date().getTime()
     );
+    // Only planets within the current world radius are allowed to move
+    if (!planetWithPosition.location) {
+      return false;
+    }
+    const dist = distBetweenCoords(planetWithPosition.location!.coords, {
+      x: 0,
+      y: 0,
+    });
+    if (dist > currentWorldRadius) {
+      return false;
+    }
     // Only planets with > 75% energy are allowed to make a move
     return currentEnergy > planetWithPosition.planetData.energyCap * 0.75;
   });
@@ -209,13 +231,18 @@ function getEnergyAtTime(planetData: PlanetData, atTimeMillis: number): number {
 
 async function fetchNearbyPlanetIdsToPlayerPlanets(
   locationsById: LocationsById,
-  playerPlanets: PlanetWithLocationsById
+  playerPlanets: PlanetWithLocationsById,
+  currentWorldRadius: number
 ): Promise<{ [playerPlanetId: string]: Array<string> }> {
   // TODO: O(N planets * M chunks), fix this later
   const results: { [playerPlanetId: string]: Array<string> } = {};
   for (const [targetLocationId, targetLocation] of Object.entries(
     locationsById
   )) {
+    const r = distBetweenCoords(targetLocation.coords, { x: 0, y: 0 });
+    if (r > currentWorldRadius) {
+      continue;
+    }
     for (const [playerPlanetId, playerPlanet] of Object.entries(
       playerPlanets
     )) {
@@ -415,10 +442,10 @@ function rankMoves(
 async function executeMoves(
   movesToExecute: Array<MoveToExecute>,
   locationsById: LocationsById,
-  contractApi: ContractAPI
+  contractApi: ContractAPI,
+  currentWorldRadius: number
 ) {
   const contractConstants = await contractApi.fetchContractConstants();
-  const currentWorldRadius = await contractApi.fetchCurrentWorldRadius();
   const txs = [];
   for (const moveToExecute of movesToExecute) {
     if (pendingTransactionsByPlanetId[moveToExecute.fromPlanetId]) {
