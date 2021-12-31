@@ -28,7 +28,7 @@ const PLAYER_ADDRESS = process.env.PLAYER_ADDRESS;
 const MAX_PLANETS_TO_QUERY = 1000;
 
 // We don't want too many lower-level planets, so set some limits by level
-const PLANET_LEVELS_TO_CAPTURE_LIMITS = [8, 10, 10];
+const PLANET_LEVELS_TO_CAPTURE_LIMITS = [5, 7, 10];
 
 // Each planet should only attack other planets within a certain range of relative levels
 const ATTACK_PLANETS_WITHIN_RELATIVE_LEVELS_BELOW = 1;
@@ -323,6 +323,8 @@ async function queryPlanetsOfInterest(
     };
   });
 
+  // Filter out some planets now that we have their default states
+  const targetPlanetsToExclude = new Set();
   allPlanetIdsOfInterest.forEach((planetId) => {
     // Filter out planets with unwanted levels
     const planet = planetsByPlanetId[planetId];
@@ -334,6 +336,7 @@ async function queryPlanetsOfInterest(
         planetLevelLimit
     ) {
       allPlanetIdsOfInterest.delete(planetId);
+      targetPlanetsToExclude.add(planetId);
     }
     if (
       planetsByPlanetId[planetId]?.planetData.planetType ===
@@ -341,6 +344,7 @@ async function queryPlanetsOfInterest(
     ) {
       // Filter out quasars because they are useless
       allPlanetIdsOfInterest.delete(planetId);
+      targetPlanetsToExclude.add(planetId);
     }
   });
 
@@ -372,7 +376,9 @@ async function queryPlanetsOfInterest(
   )) {
     results[playerPlanetId] = planetIds
       .map((planetId) => planetsByPlanetId[planetId])
-      .filter((planet) => !!planet);
+      .filter(
+        (planet) => !!planet && !targetPlanetsToExclude.has(planet.planetId)
+      );
   }
   log.verbose("Queried planets of interest count: " + data.planets.length);
 
@@ -447,6 +453,7 @@ async function executeMoves(
 ) {
   const contractConstants = await contractApi.fetchContractConstants();
   const txs = [];
+  log.log("Executing " + movesToExecute.length + " moves...");
   for (const moveToExecute of movesToExecute) {
     if (pendingTransactionsByPlanetId[moveToExecute.fromPlanetId]) {
       log.log(
