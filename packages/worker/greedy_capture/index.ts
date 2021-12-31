@@ -21,6 +21,7 @@ import { RedisClient } from "../types";
 import { PLANETS_BY_ID_QUERY, PLAYER_PLANETS_QUERY } from "./queries";
 import { ContractAPI } from "../contract";
 import { getMoveArgs } from "./snark";
+import { PendingTransaction } from "@darkforest_eth/network";
 
 const PLAYER_ADDRESS = process.env.PLAYER_ADDRESS;
 
@@ -60,6 +61,10 @@ type MoveToExecute = {
   toPlanetId: string;
   energy: number;
 };
+
+const pendingTransactionsByPlanetId: {
+  [planetId: string]: PendingTransaction;
+} = {};
 
 export async function greedyCapture(
   apolloClient: ApolloClient<any>,
@@ -416,6 +421,15 @@ async function executeMoves(
   const currentWorldRadius = await contractApi.fetchCurrentWorldRadius();
   const txs = [];
   for (const moveToExecute of movesToExecute) {
+    if (pendingTransactionsByPlanetId[moveToExecute.fromPlanetId]) {
+      log.log(
+        "Planet " +
+          moveToExecute.fromPlanetId +
+          " already has a tx, cannot move"
+      );
+      continue;
+    }
+
     log.log("Executing move: " + JSON.stringify(moveToExecute));
     const c1 = locationsById[moveToExecute.fromPlanetId].coords;
     const c2 = locationsById[moveToExecute.toPlanetId].coords;
@@ -431,12 +445,33 @@ async function executeMoves(
       distMax,
       contractConstants
     );
-    txs.push(await contractApi.move(moveArgs, moveToExecute.energy));
+    const tx = await contractApi.move(moveArgs, moveToExecute.energy);
+    txs.push(tx);
+    pendingTransactionsByPlanetId[moveToExecute.fromPlanetId] = tx;
+    tx.submitted.catch((e) => {
+      log.error(
+        "Error submitting move: " + JSON.stringify(moveToExecute) + " -- " + e
+      );
+      delete pendingTransactionsByPlanetId[moveToExecute.fromPlanetId];
+    });
+    tx.confirmed
+      .then(() => {
+        log.log(
+          "Successfully confirmed move: " + JSON.stringify(moveToExecute)
+        );
+        delete pendingTransactionsByPlanetId[moveToExecute.fromPlanetId];
+      })
+      .catch((e) => {
+        log.error(
+          "Error confirming move: " + JSON.stringify(moveToExecute) + " -- " + e
+        );
+        delete pendingTransactionsByPlanetId[moveToExecute.fromPlanetId];
+      });
     log.log(
       "Successfully SNARKed and queued move: " + JSON.stringify(moveToExecute)
     );
   }
-  // Wait for all txs to be submitted. TODO: Add error handling in case of failures.
+  // Wait for all txs to be submitted
   log.verbose("Waiting on " + txs.length + " move submissions...");
   await Promise.all(txs.map((tx) => tx.submitted));
   log.verbose("All moves submitted");
