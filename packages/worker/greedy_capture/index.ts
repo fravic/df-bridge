@@ -3,19 +3,17 @@
 import { ApolloClient } from "@apollo/client/core";
 import { EMPTY_ADDRESS } from "@darkforest_eth/constants";
 import {
-  ContractMethodName,
   Planet as DFPlanet,
   PlanetType,
   WorldLocation,
   WorldCoords,
-  UnconfirmedMove,
 } from "@darkforest_eth/types";
 import {
   ContractConstants,
   defaultPlanetFromLocation,
   toExploredChunk,
 } from "df-client";
-import { pickBy } from "lodash";
+import { pickBy, groupBy } from "lodash";
 
 import { ALL_CHUNKS_LIST_KEY, log } from "df-helm-common";
 
@@ -27,6 +25,13 @@ import { getMoveArgs } from "./snark";
 const PLAYER_ADDRESS = process.env.PLAYER_ADDRESS;
 
 const MAX_PLANETS_TO_QUERY = 1000;
+
+// We don't want too many lower-level planets, so set some limits by level
+const PLANET_LEVELS_TO_CAPTURE_LIMITS = [8, 10, 10];
+
+// Each planet should only attack other planets within a certain range of relative levels
+const ATTACK_PLANETS_WITHIN_RELATIVE_LEVELS_BELOW = 1;
+const ATTACK_PLANETS_WITHIN_RELATIVE_LEVELS_ABOVE = 2;
 
 type LocationsById = { [locationId: string]: WorldLocation };
 
@@ -76,6 +81,7 @@ export async function greedyCapture(
     apolloClient,
     planetIdsOfInterest,
     locationsById,
+    playerPlanets,
     contractConstants
   );
   const movesToExecute = rankMoves(moveablePlayerPlanets, planetsOfInterest);
@@ -251,6 +257,7 @@ async function queryPlanetsOfInterest(
   apolloClient: ApolloClient<any>,
   planetIdsOfInterest: { [playerPlanetId: string]: Array<string> },
   locationsById: LocationsById,
+  playerPlanets: PlanetWithLocationsById,
   contractConstants: ContractConstants
 ): Promise<{ [playerPlanetId: string]: Array<PlanetWithLocation> }> {
   const allPlanetIdsOfInterest = new Set<string>();
@@ -266,6 +273,11 @@ async function queryPlanetsOfInterest(
     "Querying " + allPlanetIdsOfInterest.size + " planets of interest"
   );
 
+  const playerPlanetsByLevel = groupBy(
+    Object.values(playerPlanets),
+    (planet: PlanetWithLocation) => planet.planetData.planetLevel
+  );
+
   // First, get planet default states (they won't be in the contract if they've never been captured)
   const planetsByPlanetId: { [planetId: string]: PlanetWithLocation } = {};
   allPlanetIdsOfInterest.forEach((planetId) => {
@@ -277,6 +289,27 @@ async function queryPlanetsOfInterest(
       ),
       location,
     };
+  });
+
+  allPlanetIdsOfInterest.forEach((planetId) => {
+    // Filter out planets with unwanted levels
+    const planet = planetsByPlanetId[planetId];
+    const planetLevelLimit =
+      PLANET_LEVELS_TO_CAPTURE_LIMITS[planet.planetData.planetLevel];
+    if (
+      planetLevelLimit &&
+      playerPlanetsByLevel[planet.planetData.planetLevel]?.length >=
+        planetLevelLimit
+    ) {
+      allPlanetIdsOfInterest.delete(planetId);
+    }
+    if (
+      planetsByPlanetId[planetId]?.planetData.planetType ===
+      PlanetType.SILVER_BANK
+    ) {
+      // Filter out quasars because they are useless
+      allPlanetIdsOfInterest.delete(planetId);
+    }
   });
 
   // Then, overwrite with contract data if present
@@ -319,7 +352,6 @@ function rankMoves(
   planetsOfInterest: { [playerPlanetId: string]: Array<PlanetWithLocation> }
 ): Array<MoveToExecute> {
   const results: Array<MoveToExecute> = [];
-  // Just returns the closest unowned planet with a 50% energy send for now
   for (const [playerPlanetId, targetPlanets] of Object.entries(
     planetsOfInterest
   )) {
@@ -331,15 +363,29 @@ function rankMoves(
       new Date().getTime()
     );
     targetPlanets.forEach((targetPlanet) => {
-      const playerPlanetLocation = playerPlanets[playerPlanetId].location;
+      const playerPlanet = playerPlanets[playerPlanetId];
+      const playerPlanetLocation = playerPlanet.location;
       const targetPlanetLocation = targetPlanet.location;
       if (
         !playerPlanetLocation ||
         !targetPlanetLocation ||
+        // Don't attack other players
         targetPlanet.planetData.owner !== EMPTY_ADDRESS
       ) {
         return;
       }
+      // Filter out planets with relative levels outside the desired range
+      if (
+        targetPlanet.planetData.planetLevel <
+          playerPlanet.planetData.planetLevel -
+            ATTACK_PLANETS_WITHIN_RELATIVE_LEVELS_BELOW ||
+        targetPlanet.planetData.planetLevel >
+          playerPlanet.planetData.planetLevel +
+            ATTACK_PLANETS_WITHIN_RELATIVE_LEVELS_ABOVE
+      ) {
+        return;
+      }
+      // Return the closest planet
       const dist = distBetweenCoords(
         playerPlanetLocation.coords,
         targetPlanetLocation.coords
@@ -348,6 +394,7 @@ function rankMoves(
         bestMove = {
           fromPlanetId: playerPlanetId,
           toPlanetId: targetPlanet.planetId,
+          // Always send 50% energy for now
           energy: currentEnergy * 0.5,
         };
         bestMoveDist = dist;
